@@ -1,0 +1,82 @@
+#include <tunables/global>
+
+profile openclaw-apparmor flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  # Network
+  network,
+
+  # File access
+  file,
+
+  # Capabilities: minimum for bwrap namespace operations
+  # These are AppArmor capability CHECKS only. Actual Linux
+  # capabilities are absent (cap_drop ALL). The kernel's own
+  # check still prevents real privileged operations.
+  #   sys_admin  - user namespace creation, mount operations
+  #   net_admin  - loopback setup inside network namespace
+  capability sys_admin,
+  capability net_admin,
+
+  # Deny access to sensitive /proc paths
+  # (compensates for systempaths=unconfined removing Docker's masks)
+  deny /proc/kcore rw,
+  deny /proc/keys r,
+  deny /proc/latency_stats rw,
+  deny /proc/sched_debug rw,
+  deny /proc/scsi/ r,
+  deny /proc/scsi/** rw,
+  deny /proc/sysrq-trigger rw,
+  deny /proc/timer_list r,
+  deny /proc/acpi/ r,
+  deny /proc/acpi/** rw,
+  deny /proc/asound/ r,
+  deny /proc/asound/** rw,
+  deny /proc/bus/ r,
+  deny /proc/bus/** rw,
+  deny /proc/fs/ r,
+  deny /proc/fs/** rw,
+  deny /proc/irq/ r,
+  deny /proc/irq/** rw,
+  deny /proc/interrupts r,
+  deny /proc/sys/** w,
+
+  # Deny access to sensitive /sys paths
+  deny /sys/firmware/ r,
+  deny /sys/firmware/** rwklx,
+  deny /sys/devices/virtual/powercap/ r,
+  deny /sys/devices/virtual/powercap/** rwklx,
+  deny /sys/kernel/security/ r,
+  deny /sys/kernel/security/** rwklx,
+
+  # Mount operations: allow for bwrap sandbox setup
+  # Protected by: cap_drop ALL + seccomp (5 syscalls only)
+  mount,
+  remount,
+  umount,
+  pivot_root,
+
+  # Deny dangerous filesystem types
+  deny mount fstype=debugfs,
+  deny mount fstype=tracefs,
+  deny mount fstype=securityfs,
+
+  # User namespace (required for bwrap)
+  userns,
+
+  # Signals
+  signal (receive) peer=unconfined,
+  signal (send,receive) peer=bwrap-hardened,
+
+  # Ptrace restrictions
+  deny ptrace (trace) peer=unconfined,
+  ptrace (trace,read,tracedby,readby) peer=bwrap-hardened,
+
+  # Deny raw writes to /proc and /sys (docker-default pattern)
+  deny @{PROC}/{[^1-9],[^1-9][^0-9],[^1-9s][^0-9y][^0-9s]}** w,
+  deny /sys/[^f]*/** w,
+  deny /sys/f[^s]*/** w,
+  deny /sys/fs/[^c]*/** w,
+  deny /sys/fs/c[^g]*/** w,
+  deny /sys/fs/cg[^r]*/** w,
+}

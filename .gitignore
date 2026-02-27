@@ -1,0 +1,3 @@
+# Ignore .env not ending with .example
+.env*
+!.env*.example

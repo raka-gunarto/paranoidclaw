@@ -1,0 +1,10 @@
+FROM paranoidclaw-openclaw-base:latest
+
+USER root
+
+RUN useradd -r -u 65532 -s /sbin/nologin -m openclaw
+RUN chown -R 65532:65532 /app
+
+VOLUME /home/openclaw
+
+USER 65532:65532
