@@ -35,8 +35,15 @@
         "backend": "bwrap",
         "bwrap": {
           "workdir": "/workspace",
-          "unshareNet": false, // true if you don't require net access for exec
-          "mountProc": false // false because docker masks /proc and mounting our own causes issues
+          "unshareNet": false,
+          "mountProc": false,
+          "extraBinds": [
+            "/mitmproxy-certs:/mitmproxy-certs"
+          ],
+          "env": {
+            "REQUESTS_CA_BUNDLE": "/mitmproxy-certs/mitmproxy-ca-cert.pem",
+            "SSL_CERT_FILE": "/mitmproxy-certs/mitmproxy-ca-cert.pem"
+          }
         }
       }
     }
